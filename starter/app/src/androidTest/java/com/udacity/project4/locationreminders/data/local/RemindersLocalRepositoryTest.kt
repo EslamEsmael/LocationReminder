@@ -9,11 +9,9 @@ import com.udacity.project4.locationreminders.data.dto.ReminderDTO
 import com.udacity.project4.locationreminders.data.dto.Result
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runBlockingTest
 import org.hamcrest.CoreMatchers
 import org.hamcrest.CoreMatchers.`is`
-import org.hamcrest.CoreMatchers.instanceOf
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers
 import org.junit.After
@@ -98,7 +96,7 @@ class RemindersLocalRepositoryTest {
         localRepository.saveReminder(reminder2)
 
         //WHEN - delete all reminders
-        localRepository.deleteAllReminders()
+        localRepository.deleteAll()
 
         //THEN - The reminders are deleted
         val result = localRepository.getReminders() as Result.Success

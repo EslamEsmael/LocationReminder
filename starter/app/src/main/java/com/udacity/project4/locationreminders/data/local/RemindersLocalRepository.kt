@@ -60,9 +60,10 @@ class RemindersLocalRepository(
     /**
      * Deletes all the reminders in the db
      */
-    override suspend fun deleteAllReminders() {
+    override suspend fun deleteAll() {
         withContext(ioDispatcher) {
             remindersDao.deleteAllReminders()
         }
     }
+
 }
