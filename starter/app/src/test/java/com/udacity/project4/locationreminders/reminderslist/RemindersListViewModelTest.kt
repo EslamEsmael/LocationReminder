@@ -9,10 +9,10 @@ import com.udacity.project4.locationreminders.data.FakeDataSource
 import com.udacity.project4.locationreminders.getOrAwaitValue
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runBlockingTest
-import org.hamcrest.MatcherAssert
-import org.hamcrest.Matchers
-import org.junit.After
+import org.hamcrest.CoreMatchers
+import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.`is`
+import org.junit.After
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -35,17 +35,13 @@ class RemindersListViewModelTest {
 
     @Before
     fun setup() {
-
         stopKoin()
-
         fakeDataSource = FakeDataSource()
-
         viewModel = RemindersListViewModel(ApplicationProvider.getApplicationContext(), fakeDataSource)
     }
 
     @After
     fun clearData() = runBlockingTest{
-
         fakeDataSource.deleteAll()
     }
 
@@ -56,13 +52,13 @@ class RemindersListViewModelTest {
         viewModel.loadReminders()
 
         // THEN the progress indicator is shown
-        MatcherAssert.assertThat(viewModel.showLoading.getOrAwaitValue(), Matchers.`is`(true))
+        assertThat(viewModel.showLoading.getOrAwaitValue(), `is`(true))
 
         // Execute stop indicator
         mainCoroutineRule.resumeDispatcher()
 
         // THEN: the progress indicator is hidden
-        MatcherAssert.assertThat(viewModel.showLoading.getOrAwaitValue(), Matchers.`is`(false))
+        assertThat(viewModel.showLoading.getOrAwaitValue(), `is`(false))
     }
 
     @Test
@@ -78,11 +74,11 @@ class RemindersListViewModelTest {
 
         // THEN The loaded data contains the expected values
         val result = viewModel.remindersList.getOrAwaitValue()
-        MatcherAssert.assertThat(result.size, `is`(DummyReminderData.reminders.size))
+        assertThat(result.size, `is`(DummyReminderData.reminders.size))
         result.indices.forEach {
-            MatcherAssert.assertThat(result[it].title, `is`(DummyReminderData.reminders[it].title))
+            assertThat(result[it].title, `is`(DummyReminderData.reminders[it].title))
         }
-        MatcherAssert.assertThat(viewModel.showNoData.getOrAwaitValue(), Matchers.`is`(false))
+        assertThat(viewModel.showNoData.getOrAwaitValue(), `is`(false))
     }
 
     @Test
@@ -94,8 +90,8 @@ class RemindersListViewModelTest {
         viewModel.loadReminders()
 
         // THEN The error message is shown
-        MatcherAssert.assertThat(viewModel.showSnackBar.getOrAwaitValue(), Matchers.`is`("Reminders not found!"))
-        MatcherAssert.assertThat(viewModel.showNoData.getOrAwaitValue(), Matchers.`is`(true))
+        assertThat(viewModel.showSnackBar.getOrAwaitValue(), `is`("Reminders not found!"))
+        assertThat(viewModel.showNoData.getOrAwaitValue(), `is`(true))
     }
 
     @Test
@@ -108,7 +104,7 @@ class RemindersListViewModelTest {
 
         // THEN Size of Reminders is zero
         val result = viewModel.remindersList.getOrAwaitValue()
-        MatcherAssert.assertThat(result.size, Matchers.`is`(0))
-        MatcherAssert.assertThat(viewModel.showNoData.getOrAwaitValue(), Matchers.`is`(true))
+        assertThat(result.size, `is`(0))
+        assertThat(viewModel.showNoData.getOrAwaitValue(), `is`(true))
     }
 }

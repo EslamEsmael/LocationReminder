@@ -6,8 +6,10 @@ import android.annotation.TargetApi
 import android.app.PendingIntent
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -18,6 +20,7 @@ import androidx.databinding.DataBindingUtil
 import com.google.android.gms.common.api.ResolvableApiException
 import com.google.android.gms.location.*
 import com.google.android.material.snackbar.Snackbar
+import com.udacity.project4.BuildConfig
 import com.udacity.project4.R
 import com.udacity.project4.base.BaseFragment
 import com.udacity.project4.base.NavigationCommand
@@ -26,16 +29,15 @@ import com.udacity.project4.locationreminders.geofence.GeofenceBroadcastReceiver
 import com.udacity.project4.locationreminders.reminderslist.ReminderDataItem
 import com.udacity.project4.utils.setDisplayHomeAsUpEnabled
 import org.koin.android.ext.android.inject
+import java.util.concurrent.TimeUnit
 
+@SuppressLint("UnspecifiedImmutableFlag")
 class SaveReminderFragment : BaseFragment() {
     //Get the view model this time as a single to be shared with the another fragment
     override val _viewModel: SaveReminderViewModel by inject()
     private lateinit var binding: FragmentSaveReminderBinding
-
     private val runningQOrLater = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q
-
     private lateinit var geofencingClient: GeofencingClient
-
     private var reminderDataItem: ReminderDataItem? = null
 
     private val geofencePendingIntent: PendingIntent by lazy {
@@ -43,7 +45,6 @@ class SaveReminderFragment : BaseFragment() {
         intent.action = ACTION_GEOFENCE_EVENT
         PendingIntent.getBroadcast(context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT)
     }
-
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -91,16 +92,6 @@ class SaveReminderFragment : BaseFragment() {
         }
     }
 
-    private fun checkPermissionsAndStartGeofencing() {
-
-        if (checkForegroundAndBackgroundPermissions()) {
-            checkDeviceLocationSettingsAndStartGeofence()
-        } else {
-            requestForegroundAndBackgroundPermissions()
-        }
-    }
-
-
     @TargetApi(Build.VERSION_CODES.Q)
     private fun requestForegroundAndBackgroundPermissions() {
         if (checkForegroundAndBackgroundPermissions()) return
@@ -115,6 +106,69 @@ class SaveReminderFragment : BaseFragment() {
         }
 
         requestPermissions(permissionsArray, requestCode)
+    }
+
+    @TargetApi(Build.VERSION_CODES.Q)
+    private fun checkForegroundAndBackgroundPermissions(): Boolean {
+        val checkForegroundPermissions = (PackageManager.PERMISSION_GRANTED ==
+                ContextCompat.checkSelfPermission(
+                    requireContext(),
+                    Manifest.permission.ACCESS_FINE_LOCATION))
+
+        val checkBackgroundPermissions = if (runningQOrLater) {
+            PackageManager.PERMISSION_GRANTED ==
+                    ContextCompat.checkSelfPermission(
+                        requireContext(),
+                        Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+        } else true
+
+        return checkForegroundPermissions && checkBackgroundPermissions
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (
+            grantResults.isEmpty() ||
+            grantResults[LOCATION_PERMISSION_INDEX] == PackageManager.PERMISSION_DENIED ||
+            (requestCode == REQUEST_FOREGROUND_AND_BACKGROUND_PERMISSION_RESULT_CODE &&
+                    grantResults[BACKGROUND_LOCATION_PERMISSION_INDEX] ==
+                    PackageManager.PERMISSION_DENIED)
+        ) {
+            Snackbar.make(
+                requireActivity().findViewById<ConstraintLayout>(R.id.saveReminderConstraintLayout),
+                R.string.permission_denied_explanation,
+                Snackbar.LENGTH_INDEFINITE
+            )
+                .setAction(R.string.settings) {
+                    startActivity(Intent().apply {
+                        action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+                        data = Uri.fromParts("package",BuildConfig.APPLICATION_ID, null)
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                    })
+                }.show()
+        } else {
+            checkDeviceLocationSettingsAndStartGeofence()
+        }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == REQUEST_TURN_DEVICE_LOCATION_ON) {
+            checkDeviceLocationSettingsAndStartGeofence(false)
+        }
+    }
+
+    private fun checkPermissionsAndStartGeofencing() {
+
+        if (checkForegroundAndBackgroundPermissions()) {
+            checkDeviceLocationSettingsAndStartGeofence()
+        } else {
+            requestForegroundAndBackgroundPermissions()
+        }
     }
 
     private fun checkDeviceLocationSettingsAndStartGeofence(resolve: Boolean = true) {
@@ -184,26 +238,6 @@ class SaveReminderFragment : BaseFragment() {
         }
     }
 
-
-    @TargetApi(Build.VERSION_CODES.Q)
-    private fun checkForegroundAndBackgroundPermissions(): Boolean {
-        val checkForegroundPermissions = (PackageManager.PERMISSION_GRANTED ==
-                ContextCompat.checkSelfPermission(
-                    requireContext(),
-                    Manifest.permission.ACCESS_FINE_LOCATION))
-
-        val checkBackgroundPermissions = if (runningQOrLater) {
-            PackageManager.PERMISSION_GRANTED ==
-                    ContextCompat.checkSelfPermission(
-                        requireContext(),
-                        Manifest.permission.ACCESS_BACKGROUND_LOCATION)
-        } else true
-
-        return checkForegroundPermissions && checkBackgroundPermissions
-    }
-
-
-
     override fun onDestroy() {
         super.onDestroy()
         //make sure to clear the view model after destroy, as it's a single view model.
@@ -219,5 +253,4 @@ class SaveReminderFragment : BaseFragment() {
         private const val LOCATION_PERMISSION_INDEX = 0
         private const val BACKGROUND_LOCATION_PERMISSION_INDEX = 1
     }
-
 }

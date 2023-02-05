@@ -35,7 +35,9 @@ class ReminderDescriptionActivity : AppCompatActivity() {
         )
         val reminderDataItem = intent.extras?.get(EXTRA_ReminderDataItem) as ReminderDataItem
 
+        binding.lifecycleOwner = this
         binding.reminderDataItem = reminderDataItem
+
 
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
     }
